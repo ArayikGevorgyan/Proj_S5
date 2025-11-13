@@ -1,0 +1,26 @@
+# Core analytics stack
+pandas
+numpy
+scikit-learn
+scipy
+matplotlib
+seaborn
+joblib
+networkx
+shap
+
+# Web/UI
+streamlit
+flask
+
+# Reporting
+reportlab>=4.0
+fpdf
+
+# Backend & auth
+sqlalchemy
+psycopg2-binary
+streamlit-authenticator
+bcrypt
+python-dotenv
+requests

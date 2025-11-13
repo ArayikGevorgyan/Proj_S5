@@ -1,0 +1,13 @@
+credentials:
+  usernames:
+    drsmith:
+      email: dr.smith@example.com
+      name: Dr. Smith
+      password: '$2b$12$KIX6y.4OAOJz0VXf/VcKMOc25tDQM9BxPTb0l7KbuAcEISqfghd4.'
+      password_plain: password
+cookie:
+  expiry_days: 1
+  key: smart_healthcare_signature_key
+  name: smart_healthcare_cookie
+preauthorized:
+  emails: []
