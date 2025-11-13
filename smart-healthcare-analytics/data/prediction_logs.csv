@@ -1,0 +1,4 @@
+PatientID,DiseaseType,RiskScore,Result,Timestamp,InputData
+dc7fe5b4,default (general),0.33,Low Risk,2025-11-13T14:52:08,"{""Age"": 30, ""BMI"": 25.0, ""Glucose"": 110, ""BloodPressure"": 80, ""Cholesterol"": 200, ""Gender"": 1, ""Smoking"": 0, ""PhysicalActivity"": 1}"
+dc7fe5b4,default (general),0.33,Low Risk,2025-11-13T14:53:19,"{""Age"": 30, ""BMI"": 25.0, ""Glucose"": 110, ""BloodPressure"": 80, ""Cholesterol"": 200, ""Gender"": 1, ""Smoking"": 0, ""PhysicalActivity"": 1}"
+c64799d7,stroke,0.36,Low Risk,2025-11-13T14:53:47,"{""Age"": 24, ""BMI"": 22.0, ""Glucose"": 107, ""BloodPressure"": 80, ""Cholesterol"": 200, ""Gender"": 0, ""Smoking"": 0, ""PhysicalActivity"": 1}"
