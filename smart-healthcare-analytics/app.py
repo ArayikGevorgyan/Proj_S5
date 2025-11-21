@@ -196,7 +196,6 @@ DOCTOR_MENU = [
     "📂 Upload Data",
     "🧠 AI Prediction",
     "📈 Risk Trend Analysis",
-    "🔁 Retrain Model",
     "📤 Export Report",
     "💬 AI Chatbot",
 ]
@@ -517,17 +516,6 @@ elif menu == "📈 Risk Trend Analysis":
             trend_path = plot_risk_trend(history, patient_id, patient_row.get("Name"))
             if trend_path:
                 st.image(trend_path, caption="Risk trend over time")
-
-# ------------------- RETRAIN MODEL -------------------
-elif menu == "🔁 Retrain Model":
-    require_doctor()
-    st.subheader("Retrain Machine Learning Models")
-    if st.button("🚀 Retrain Now"):
-        with st.spinner("Training models..."):
-            results, _ = train_models(df_clean)
-        st.success("✅ Retraining complete.")
-        st.json(results)
-
 # ------------------- EXPORT REPORT -------------------
 elif menu == "📤 Export Report":
     st.subheader("Generate and Download Patient Report")
