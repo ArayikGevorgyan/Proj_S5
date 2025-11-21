@@ -7,7 +7,7 @@ from typing import Optional
 
 from src.data_preparation import load_data, clean_data, merge_uploaded_dataset
 from src.stats_analysis import descriptive_statistics, correlation_matrix
-from src.graph_model import create_feature_graph, visualize_graph
+# NOTE: graph visualization removed but helpers kept for future re-enable
 from src.ml_model import (
     load_model, predict_risk, train_models,
     train_multi_disease_models, load_multi_model,
@@ -200,7 +200,6 @@ DOCTOR_MENU = [
     "📊 Model Comparison",
     "🔁 Retrain Model",
     "📤 Export Report",
-    "🔗 Graph Visualization",
     "💬 AI Chatbot",
 ]
 PATIENT_MENU = [
@@ -647,14 +646,6 @@ elif menu == "📤 Export Report":
                     file_name=os.path.basename(report_path),
                     mime="application/pdf"
                 )
-
-# ------------------- GRAPH VISUALIZATION -------------------
-elif menu == "🔗 Graph Visualization":
-    require_doctor()
-    st.subheader("Health Metric Correlation Network")
-    G = create_feature_graph(df_clean)
-    visualize_graph(G, output_path="docs/plots/feature_graph.png")
-    st.image("docs/plots/feature_graph.png", caption="Feature Correlation Graph")
 
 # ------------------- AI CHATBOT -------------------
 elif menu == "💬 AI Chatbot":
