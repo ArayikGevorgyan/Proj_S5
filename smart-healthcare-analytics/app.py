@@ -11,7 +11,6 @@ from src.stats_analysis import descriptive_statistics, correlation_matrix
 from src.ml_model import (
     load_model, predict_risk, train_models,
     train_multi_disease_models, load_multi_model,
-    encode_categoricals, get_feature_importance
 )
 from src.patient_database import add_patient, get_all_patients, search_patients, save_prediction_log, get_prediction_history
 from src.recommendations import generate_recommendations
@@ -197,7 +196,6 @@ DOCTOR_MENU = [
     "📂 Upload Data",
     "🧠 AI Prediction",
     "📈 Risk Trend Analysis",
-    "📊 Model Comparison",
     "🔁 Retrain Model",
     "📤 Export Report",
     "💬 AI Chatbot",
@@ -519,51 +517,6 @@ elif menu == "📈 Risk Trend Analysis":
             trend_path = plot_risk_trend(history, patient_id, patient_row.get("Name"))
             if trend_path:
                 st.image(trend_path, caption="Risk trend over time")
-
-# ------------------- MODEL COMPARISON -------------------
-elif menu == "📊 Model Comparison":
-    require_doctor()
-    st.subheader("Model Performance Comparison")
-    results, _ = train_models(df_clean)
-    results_df = pd.DataFrame([
-        {"Model": name, "Accuracy": info["accuracy"], "ROC AUC": info["roc_auc"]}
-        for name, info in results.items()
-    ])
-    st.dataframe(results_df)
-    st.bar_chart(results_df.set_index("Model")[["Accuracy", "ROC AUC"]])
-    st.write("### ROC Curves")
-    for name, info in results.items():
-        if "roc_curve" in info:
-            st.image(info["roc_curve"], caption=f"{name} ROC Curve")
-
-    st.markdown("---")
-    st.write("### Feature Importance Insights")
-    try:
-        model_bundle, scaler = load_model()
-    except FileNotFoundError:
-        st.info("Train the default model to unlock feature importance charts.")
-    else:
-        encoded_df = encode_categoricals(df_clean.copy())
-        feature_cols = [col for col in encoded_df.columns if col != "Disease"]
-        if feature_cols:
-            sample_features = encoded_df[feature_cols]
-            sample_features = sample_features.head(min(200, len(sample_features)))
-            if scaler is not None:
-                scaled_values = scaler.transform(sample_features)
-                sample_scaled = pd.DataFrame(scaled_values, columns=feature_cols)
-            else:
-                sample_scaled = sample_features
-
-            importance = get_feature_importance(model_bundle, feature_cols, sample_scaled)
-
-            if importance["model_importance"]:
-                imp_df = pd.DataFrame(importance["model_importance"], columns=["Feature", "Importance"]).set_index("Feature")
-                st.bar_chart(imp_df, height=300)
-            if importance["shap_importance"]:
-                shap_df = pd.DataFrame(importance["shap_importance"], columns=["Feature", "SHAP Value"]).set_index("Feature")
-                st.bar_chart(shap_df, height=300)
-        else:
-            st.info("Insufficient numeric features to compute importance.")
 
 # ------------------- RETRAIN MODEL -------------------
 elif menu == "🔁 Retrain Model":
