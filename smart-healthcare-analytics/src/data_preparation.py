@@ -102,10 +102,10 @@ def clean_input_data(data):
 
 def merge_uploaded_dataset(uploaded_file,
                            base_dataset: str = "data/sample_patients.csv",
-                           upload_dir: str = "data/uploads") -> pd.DataFrame:
+                           upload_dir: str = "data/uploads") -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Save an uploaded CSV and merge it into the primary dataset.
-    Returns the updated dataframe used throughout the app.
+    Save an uploaded CSV, merge it into the primary dataset, and return
+    both the updated dataset and the cleaned contents of the uploaded file.
     """
     upload_dir_path = _resolve_path(upload_dir)
     os.makedirs(upload_dir_path, exist_ok=True)
@@ -124,4 +124,4 @@ def merge_uploaded_dataset(uploaded_file,
 
     updated_df = pd.concat([base_df, new_df_clean], ignore_index=True)
     updated_df.to_csv(base_dataset_path, index=False)
-    return updated_df
+    return updated_df, new_df_clean

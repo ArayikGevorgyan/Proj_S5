@@ -312,9 +312,28 @@ elif menu == "📂 Upload Data":
 
     uploaded_file = st.file_uploader("Select CSV file", type=["csv"])
     if uploaded_file is not None:
-        updated_df = merge_uploaded_dataset(uploaded_file)
+        updated_df, new_records = merge_uploaded_dataset(uploaded_file)
         st.success(f"File ingested successfully. Dataset now has {len(updated_df)} records.")
         st.dataframe(updated_df.tail())
+
+        # Persist uploaded patients into the primary database for availability elsewhere in the app.
+        if not new_records.empty:
+            upload_label = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+            added_count = 0
+            for idx, row in new_records.reset_index(drop=True).iterrows():
+                patient_payload = {
+                    "Name": str(row.get("Name") or f"Uploaded Patient {upload_label}-{idx + 1}"),
+                    "Age": row.get("Age"),
+                    "Gender": row.get("Gender", "Unknown"),
+                    "BMI": row.get("BMI"),
+                    "Glucose": row.get("Glucose"),
+                    "BloodPressure": row.get("BloodPressure"),
+                    "Cholesterol": row.get("Cholesterol")
+                }
+                add_patient(patient_payload)
+                added_count += 1
+
+            st.info(f"{added_count} patient record(s) added to the Patient Database from the uploaded file.")
     else:
         st.info("Awaiting file upload...")
 
