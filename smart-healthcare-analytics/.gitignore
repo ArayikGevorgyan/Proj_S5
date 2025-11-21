@@ -1,5 +1,12 @@
 __pycache__/
 *.pkl
+# Allow tracked data files
+#!data/*.csv
+# Ignore CSV globally except the data directory
 *.csv
+
+# Track CSVs in data directory
+!data/
+!data/*.csv
 *.ipynb_checkpoints/
 .env

@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from functools import reduce
+from pathlib import Path
 
 import pandas as pd
 import re
@@ -18,9 +19,23 @@ def validate_field(value, pattern):
     return bool(re.match(pattern, str(value)))
 
 # ---- Main pipeline functions ----
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _resolve_path(filepath: str | os.PathLike) -> Path:
+    """Return absolute path within the project for robust file access."""
+    path = Path(filepath)
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+    return path
+
+
 def load_data(filepath: str) -> pd.DataFrame:
     """Load CSV file into immutable Pandas DataFrame."""
-    df = pd.read_csv(filepath)
+    file_path = _resolve_path(filepath)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Dataset not found: {file_path}")
+    df = pd.read_csv(file_path)
     return df.copy()  # immutability: never mutate the original
 
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -92,19 +107,21 @@ def merge_uploaded_dataset(uploaded_file,
     Save an uploaded CSV and merge it into the primary dataset.
     Returns the updated dataframe used throughout the app.
     """
-    os.makedirs(upload_dir, exist_ok=True)
+    upload_dir_path = _resolve_path(upload_dir)
+    os.makedirs(upload_dir_path, exist_ok=True)
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    saved_path = os.path.join(upload_dir, f"patients_upload_{timestamp}.csv")
+    saved_path = upload_dir_path / f"patients_upload_{timestamp}.csv"
 
     new_df = pd.read_csv(uploaded_file)
     new_df_clean = clean_data(new_df)
     new_df_clean.to_csv(saved_path, index=False)
 
-    if os.path.exists(base_dataset):
-        base_df = load_data(base_dataset)
+    base_dataset_path = _resolve_path(base_dataset)
+    if base_dataset_path.exists():
+        base_df = load_data(base_dataset_path)
     else:
         base_df = pd.DataFrame()
 
     updated_df = pd.concat([base_df, new_df_clean], ignore_index=True)
-    updated_df.to_csv(base_dataset, index=False)
+    updated_df.to_csv(base_dataset_path, index=False)
     return updated_df
