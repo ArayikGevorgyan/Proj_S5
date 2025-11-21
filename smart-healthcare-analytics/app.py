@@ -20,7 +20,6 @@ from src.analytics import (
     get_patient_history as analytics_patient_history,
     plot_risk_trend,
     correlation_over_time,
-    cluster_patients,
 )
 from src.chatbot import explain_patient_results, chat_with_ai
 from src.database import init_db
@@ -198,7 +197,6 @@ DOCTOR_MENU = [
     "📂 Upload Data",
     "🧠 AI Prediction",
     "📈 Risk Trend Analysis",
-    "🧩 Cluster Analysis",
     "📊 Model Comparison",
     "🔁 Retrain Model",
     "📤 Export Report",
@@ -522,25 +520,6 @@ elif menu == "📈 Risk Trend Analysis":
             trend_path = plot_risk_trend(history, patient_id, patient_row.get("Name"))
             if trend_path:
                 st.image(trend_path, caption="Risk trend over time")
-
-# ------------------- CLUSTER ANALYSIS -------------------
-elif menu == "🧩 Cluster Analysis":
-    require_doctor()
-    st.subheader("Patient Cluster Analysis")
-    if df_clean is None or df_clean.empty:
-        st.warning("Dataset unavailable for clustering.")
-    else:
-        k = st.slider("Number of clusters", min_value=2, max_value=6, value=3)
-        cluster_data = cluster_patients(df_clean, n_clusters=k)
-        if not cluster_data:
-            st.info("Unable to compute clusters with the current dataset.")
-        else:
-            if cluster_data.get("plot_path"):
-                st.image(cluster_data["plot_path"], caption="PCA scatter with cluster labels")
-            st.write("### Cluster Distribution")
-            st.dataframe(cluster_data["summary"])
-            st.write("### Cluster Centroids (feature space)")
-            st.dataframe(cluster_data["centroids"])
 
 # ------------------- MODEL COMPARISON -------------------
 elif menu == "📊 Model Comparison":
