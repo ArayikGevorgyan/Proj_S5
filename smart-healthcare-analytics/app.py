@@ -177,9 +177,6 @@ if st.sidebar.button("Logout"):
         del st.query_params["session"]
     st.rerun()
 
-st.title("🩺 Smart Healthcare Analytics System")
-st.write("Predict, manage, and analyze patient health risks using AI.")
-
 user_prediction_cache = st.session_state["patient_predictions"].setdefault(current_user.username, {})
 
 
@@ -216,14 +213,54 @@ df_clean = clean_data(df)
 
 # ------------------- HOME -------------------
 if menu == "🏠 Home":
-    st.subheader("Project Overview")
-    st.write("""
-    This system assists healthcare professionals in identifying chronic disease risks (e.g., diabetes, heart disease, stroke)
-    through AI-driven analysis, patient management, and personalized recommendations.
-    """)
-
-    #st.image("docs/plots/feature_graph.png", caption="AI-Powered Health Insights", use_column_width=True)
-    st.success("Use the sidebar to navigate through patient data, AI predictions, and reports.")
+    st.markdown(
+        """
+        <h1 style="text-align:center; margin-top:0.5em;">
+            🩺 Smart Healthcare Analytics System
+        </h1>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <h3 style="text-align:center; font-weight:400; margin-top:0.2em;">
+            Predict, manage, and analyze patient health risks using AI.
+        </h3>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div style="text-align:center; margin-top:3em; font-size:1.05rem;">
+            This system assists healthcare professionals in identifying chronic disease risks
+            (e.g., diabetes, heart disease, stroke) through AI-driven analysis, patient management,
+            and personalized recommendations.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div style="position:fixed;
+                    bottom:2rem;
+                    left:0;
+                    right:0;
+                    display:flex;
+                    justify-content:center;
+                    z-index:100;">
+            <div style="background:#d4f5d0;
+                        border-radius:12px;
+                        padding:0.9em 1.8em;
+                        font-size:1rem;
+                        font-weight:600;
+                        color:#1f4d1f;
+                        box-shadow:0 2px 6px rgba(0,0,0,0.08);">
+                Use the sidebar to navigate through patient data, AI predictions, and reports.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ------------------- PATIENT DATABASE -------------------
 elif menu == "📋 Patient Database":
