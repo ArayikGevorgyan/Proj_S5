@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import shap
 from datetime import datetime
 from typing import List, Optional
+from pathlib import Path
 
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -16,10 +17,17 @@ from sklearn.metrics import (
     roc_curve, auc
 )
 
-# File paths
-BUNDLE_PATH = "models/model_bundle.pkl"
-MODELS_DIR = "models/"
-PLOTS_DIR = "docs/plots/"
+# File paths anchored to project root to stay robust across working dirs
+BASE_DIR = Path(__file__).resolve().parents[1]
+
+
+def project_path(*parts) -> Path:
+    return BASE_DIR.joinpath(*parts)
+
+
+BUNDLE_PATH = project_path("models", "model_bundle.pkl")
+MODELS_DIR = project_path("models")
+PLOTS_DIR = project_path("docs", "plots")
 
 os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(PLOTS_DIR, exist_ok=True)
@@ -33,9 +41,11 @@ def encode_categoricals(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def _train_and_save_bundle(df: pd.DataFrame, bundle_path: str,
+def _train_and_save_bundle(df: pd.DataFrame, bundle_path,
                            target_column: str = "Disease") -> float:
     """Train a RandomForest model on df and persist bundle, returning accuracy."""
+    bundle_path = Path(bundle_path)
+    bundle_path.parent.mkdir(parents=True, exist_ok=True)
     X, y = prepare_data(df, target_column)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
@@ -103,7 +113,7 @@ def train_models(df: pd.DataFrame, target_column="Disease"):
         roc_auc = auc(fpr, tpr)
 
         # Save ROC plot
-        roc_path = os.path.join(PLOTS_DIR, f"{name.replace(' ', '_')}_ROC.png")
+        roc_path = PLOTS_DIR / f"{name.replace(' ', '_')}_ROC.png"
         plt.figure(figsize=(6, 5))
         plt.plot(fpr, tpr, label=f"{name} (AUC={roc_auc:.2f})")
         plt.plot([0, 1], [0, 1], "k--")
@@ -118,7 +128,7 @@ def train_models(df: pd.DataFrame, target_column="Disease"):
         results[name] = {
             "accuracy": round(acc, 3),
             "roc_auc": round(roc_auc, 3),
-            "roc_curve": roc_path
+            "roc_curve": str(roc_path)
         }
 
         if acc > best_acc:
@@ -149,7 +159,7 @@ def train_multi_disease_models(df_dict: dict):
     results = {}
     for disease, df in df_dict.items():
         print(f"\nTraining model for {disease.upper()}...")
-        disease_path = os.path.join(MODELS_DIR, f"{disease}_bundle.pkl")
+        disease_path = MODELS_DIR / f"{disease}_bundle.pkl"
 
         df_encoded = encode_categoricals(df)
         acc = _train_and_save_bundle(df_encoded, disease_path, target_column="Disease")
@@ -164,15 +174,16 @@ def load_multi_model(disease: str):
     If the bundle is missing, attempt to auto-train using available datasets.
     """
     disease = disease.lower()
-    path = os.path.join(MODELS_DIR, f"{disease}_bundle.pkl")
-    if not os.path.exists(path):
+    path = MODELS_DIR / f"{disease}_bundle.pkl"
+    if not path.exists():
         # Try disease-specific dataset (e.g., data/diabetes_data.csv), otherwise fall back.
         candidate_paths = [
-            os.path.join("data", f"{disease}_data.csv"),
-            os.path.join("data", "processed_data.csv")
+            project_path("data", f"{disease}_data.csv"),
+            project_path("data", "processed_data.csv")
         ]
         for data_path in candidate_paths:
-            if not os.path.exists(data_path):
+            data_path = Path(data_path)
+            if not data_path.exists():
                 continue
             try:
                 df = pd.read_csv(data_path)
@@ -182,7 +193,7 @@ def load_multi_model(disease: str):
             except Exception:
                 continue
 
-    if not os.path.exists(path):
+    if not path.exists():
         return None, None
 
     bundle = joblib.load(path)
@@ -194,7 +205,7 @@ def load_multi_model(disease: str):
 # -----------------------------
 def load_model():
     """Load the default (best) model."""
-    if not os.path.exists(BUNDLE_PATH):
+    if not BUNDLE_PATH.exists():
         raise FileNotFoundError("No trained model found. Train the model first.")
     bundle = joblib.load(BUNDLE_PATH)
     return bundle["model"], bundle["scaler"]
