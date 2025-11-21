@@ -10,7 +10,7 @@ from src.stats_analysis import descriptive_statistics, correlation_matrix
 from src.graph_model import create_feature_graph, visualize_graph
 from src.ml_model import (
     load_model, predict_risk, train_models,
-    explain_prediction, train_multi_disease_models, load_multi_model,
+    train_multi_disease_models, load_multi_model,
     encode_categoricals, get_feature_importance
 )
 from src.patient_database import add_patient, get_all_patients, search_patients, save_prediction_log, get_prediction_history
@@ -413,12 +413,6 @@ elif menu == "🧠 AI Prediction":
             for r in recs:
                 st.info(f"• {r}")
 
-            # Explainable AI
-            shap_path = explain_prediction(model, scaler, input_data)
-            if shap_path and os.path.exists(shap_path):
-                st.write("### Explainable AI (Feature Importance)")
-                st.image(shap_path, caption="SHAP Explanation Plot")
-
             st.write("### 🤖 AI Medical Assistant")
             if st.button("Explain This Result"):
                 with st.spinner("Generating explanation..."):
@@ -456,8 +450,7 @@ elif menu == "🧠 AI Prediction":
                     "risk_score": result["risk_score"],
                     "disease_type": disease_type,
                     "timestamp": result.get("timestamp") or datetime.utcnow().isoformat(timespec="seconds"),
-                    "input_data": input_data,
-                    "shap_path": shap_path if shap_path and os.path.exists(shap_path) else None
+                    "input_data": input_data
                 }
                 save_prediction_log(
                     patient_id,
@@ -629,8 +622,7 @@ elif menu == "📤 Export Report":
                     "risk_score": float(last.get("RiskScore", 0) or 0),
                     "disease_type": last.get("DiseaseType"),
                     "timestamp": last.get("Timestamp"),
-                    "input_data": input_data,
-                    "shap_path": None
+                    "input_data": input_data
                 }
 
         if latest_prediction:
