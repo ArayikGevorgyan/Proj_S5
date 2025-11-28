@@ -182,7 +182,8 @@ def seed_users_from_yaml(yaml_path: str) -> None:
 
     with session_scope() as session:
         for username, info in users.items():
-            exists = session.execute(select(User).where(User.username == username)).first()
+            username_clean = (username or "").strip().lower()
+            exists = session.execute(select(User).where(User.username == username_clean)).first()
             if exists:
                 continue
             plain = info.get("password_plain")
@@ -193,7 +194,7 @@ def seed_users_from_yaml(yaml_path: str) -> None:
                 # Unknown format; re-hash if plain provided
                 password_hash = hash_password(password_hash)
             user = User(
-                username=username,
+                username=username_clean,
                 name=info.get("name", username),
                 email=info.get("email"),
                 password_hash=password_hash or hash_password("password"),

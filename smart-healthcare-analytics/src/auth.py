@@ -60,8 +60,15 @@ def _user_to_dataclass(user: User) -> AuthenticatedUser:
 
 
 def authenticate_user(username: str, password: str) -> Optional[AuthenticatedUser]:
+    # Normalize username (trim spaces); keep backwards compatibility by checking both
+    raw_username = username or ""
+    normalized = raw_username.strip()
+    lowered = normalized.lower()
+
     with session_scope() as session:
-        user = session.execute(select(User).where(User.username == username)).scalar_one_or_none()
+        user = session.execute(select(User).where(User.username == normalized)).scalar_one_or_none()
+        if not user and lowered != normalized:
+            user = session.execute(select(User).where(User.username == lowered)).scalar_one_or_none()
         if not user:
             return None
         if not verify_password(password, user.password_hash):
@@ -70,7 +77,8 @@ def authenticate_user(username: str, password: str) -> Optional[AuthenticatedUse
 
 
 def _ensure_unique_user(session, username: str, email: Optional[str]):
-    if session.execute(select(User).where(User.username == username)).first():
+    username_clean = (username or "").strip().lower()
+    if session.execute(select(User).where(User.username == username_clean)).first():
         raise ValueError("Username already exists. Please choose another.")
     if email:
         if session.execute(select(User).where(User.email == email)).first():
@@ -79,9 +87,10 @@ def _ensure_unique_user(session, username: str, email: Optional[str]):
 
 def register_doctor_account(name: str, email: str, username: str, password: str) -> AuthenticatedUser:
     with session_scope() as session:
-        _ensure_unique_user(session, username, email)
+        username_clean = (username or "").strip().lower()
+        _ensure_unique_user(session, username_clean, email)
         user = User(
-            username=username,
+            username=username_clean,
             name=name,
             email=email,
             role="doctor",
@@ -105,7 +114,8 @@ def register_patient_account(
     cholesterol: Optional[float] = None,
 ) -> AuthenticatedUser:
     with session_scope() as session:
-        _ensure_unique_user(session, username, email)
+        username_clean = (username or "").strip().lower()
+        _ensure_unique_user(session, username_clean, email)
         patient = Patient(
             patient_id=str(uuid.uuid4())[:8],
             name=name,
@@ -120,7 +130,7 @@ def register_patient_account(
         session.flush()
 
         user = User(
-            username=username,
+            username=username_clean,
             name=name,
             email=email,
             role="patient",
