@@ -12,15 +12,25 @@ from src.ml_model import (
     load_model, predict_risk, train_models,
     train_multi_disease_models, load_multi_model,
 )
-from src.patient_database import add_patient, get_all_patients, search_patients, save_prediction_log, get_prediction_history
-from src.recommendations import generate_recommendations
+from src.patient_database import (
+    add_patient,
+    get_all_patients,
+    search_patients,
+    save_prediction_log,
+    get_prediction_history,
+    add_daily_vital,
+)
+from src.recommendations import generate_recommendations, generate_vitals_recommendations
 from src.report_generator import generate_patient_report
 from src.analytics import (
     get_patient_history as analytics_patient_history,
     plot_risk_trend,
     correlation_over_time,
+    get_patient_vitals_history,
+    plot_vitals_trend,
 )
 from src.chatbot import explain_patient_results, chat_with_ai
+from src.messaging import send_message, get_conversation
 from src.database import init_db
 from src.auth import (
     authenticate_user,
@@ -31,6 +41,7 @@ from src.auth import (
     get_user_by_token,
     invalidate_session_token,
     AuthenticatedUser,
+    list_users_by_role,
 )
 
 
@@ -192,15 +203,19 @@ DOCTOR_MENU = [
     "📊 Data Analytics",
     "📂 Upload Data",
     "🧠 AI Prediction",
+    "❤️ Daily Vitals",
     "📈 Risk Trend Analysis",
     "📤 Export Report",
+    "📨 Messages",
     "💬 AI Chatbot",
 ]
 PATIENT_MENU = [
     "🏠 Home",
     "🧠 AI Prediction",
+    "❤️ Daily Vitals",
     "📈 Risk Trend Analysis",
     "📤 Export Report",
+    "📨 Messages",
     "💬 AI Chatbot",
 ]
 
@@ -301,6 +316,29 @@ elif menu == "📋 Patient Database":
 
     if patients is not None and not patients.empty:
         st.dataframe(patients)
+
+        st.markdown("### Daily Vitals Overview")
+        patient_lookup = {}
+        options = []
+        for _, row in patients.iterrows():
+            label = f"{row['Name']} ({row['PatientID']})"
+            patient_lookup[label] = row.to_dict()
+            options.append(label)
+
+        selected_label = st.selectbox("Select patient to view vitals", options)
+        selected_patient = patient_lookup[selected_label]
+        selected_id = selected_patient.get("PatientID")
+
+        vitals_df = get_patient_vitals_history(selected_id)
+        if vitals_df is None or vitals_df.empty:
+            st.info("No daily vitals recorded yet for this patient.")
+        else:
+            vitals_df_display = vitals_df.copy()
+            vitals_df_display["TakenAt"] = pd.to_datetime(vitals_df_display["TakenAt"]).dt.strftime("%Y-%m-%d %H:%M")
+            st.dataframe(vitals_df_display.tail(20))
+            trend_path = plot_vitals_trend(vitals_df, selected_id, selected_patient.get("Name"))
+            if trend_path:
+                st.image(trend_path, caption="Daily blood pressure and heart-rate trend")
     else:
         st.warning("No patient records found.")
 
@@ -516,6 +554,86 @@ elif menu == "🧠 AI Prediction":
             else:
                 st.info("Prediction completed for manual entry. Select a saved patient to attach results to their reports.")
 
+# ------------------- DAILY VITALS -------------------
+elif menu == "❤️ Daily Vitals":
+    st.subheader("Daily Heart Pressure & Vitals")
+
+    if current_user.role == "doctor":
+        patients = get_all_patients()
+        if patients is None or patients.empty:
+            st.warning("No patients found. Add patients in the database section first.")
+            st.stop()
+
+        patient_lookup = {}
+        options = []
+        for _, row in patients.iterrows():
+            label = f"{row['Name']} ({row['PatientID']})"
+            patient_lookup[label] = row.to_dict()
+            options.append(label)
+
+        selected_label = st.selectbox("Select Patient", options)
+        patient_row = patient_lookup[selected_label]
+        patient_id = patient_row.get("PatientID")
+        st.caption(f"Viewing vitals for {patient_row.get('Name')} (ID: {patient_id}).")
+    else:
+        patient_row = get_patient_record_for_user(current_user)
+        if not patient_row:
+            st.error("No patient profile available.")
+            st.stop()
+        patient_id = patient_row.get("PatientID")
+        st.info("Recording your own daily vitals.")
+
+    col_form, col_history = st.columns([1, 1.2])
+
+    with col_form:
+        if current_user.role == "patient":
+            st.markdown("### Add Today's Vitals")
+            with st.form("daily_vitals_form"):
+                systolic = st.number_input("Systolic Blood Pressure (mmHg)", min_value=60, max_value=250, value=120)
+                diastolic = st.number_input("Diastolic Blood Pressure (mmHg)", min_value=40, max_value=150, value=80)
+                heart_rate = st.number_input("Heart Rate (bpm)", min_value=30, max_value=200, value=70)
+                notes = st.text_area("Notes (optional)", height=80)
+                submitted = st.form_submit_button("Save Vitals")
+
+            if submitted:
+                add_daily_vital(
+                    patient_id=patient_id,
+                    systolic_bp=float(systolic),
+                    diastolic_bp=float(diastolic),
+                    heart_rate=float(heart_rate),
+                    notes=notes.strip() or None,
+                    created_by=current_user.username,
+                )
+                latest = {
+                    "SystolicBP": systolic,
+                    "DiastolicBP": diastolic,
+                    "HeartRate": heart_rate,
+                }
+                st.success("Vitals saved successfully.")
+                st.markdown("### 💬 Recommendations for Today")
+                for rec in generate_vitals_recommendations(latest):
+                    st.info(f"• {rec}")
+                st.rerun()
+        else:
+            st.markdown("### Add Today's Vitals")
+            st.info("Doctors can view patient vitals here. Patients record vitals from their own accounts.")
+
+    with col_history:
+        st.markdown("### History & Trends")
+        vitals_df = get_patient_vitals_history(patient_id)
+        if vitals_df is None or vitals_df.empty:
+            if current_user.role == "patient":
+                st.info("No vitals recorded yet. Add today's measurements to start tracking.")
+            else:
+                st.info("No vitals recorded yet for this patient.")
+        else:
+            vitals_df_display = vitals_df.copy()
+            vitals_df_display["TakenAt"] = pd.to_datetime(vitals_df_display["TakenAt"]).dt.strftime("%Y-%m-%d %H:%M")
+            st.dataframe(vitals_df_display.tail(20))
+            trend_path = plot_vitals_trend(vitals_df, patient_id, patient_row.get("Name"))
+            if trend_path:
+                st.image(trend_path, caption="Daily blood pressure and heart-rate trend")
+
 # ------------------- RISK TREND ANALYSIS -------------------
 elif menu == "📈 Risk Trend Analysis":
     st.subheader("Patient Risk Trend Analysis")
@@ -624,6 +742,76 @@ elif menu == "📤 Export Report":
                     file_name=os.path.basename(report_path),
                     mime="application/pdf"
                 )
+
+# ------------------- DOCTOR-PATIENT MESSAGES -------------------
+elif menu == "📨 Messages":
+    st.subheader("Doctor–Patient Messages")
+
+    if current_user.role == "doctor":
+        partners = list_users_by_role("patient")
+        role_label = "patient"
+    else:
+        partners = list_users_by_role("doctor")
+        role_label = "doctor"
+
+    if not partners:
+        st.info(f"No {role_label} accounts available to chat with yet.")
+    else:
+        partner_lookup = {f"{u.name} (@{u.username})": u for u in partners}
+        labels = sorted(partner_lookup.keys())
+        default_label = labels[0]
+        selected_label = st.selectbox("Select conversation", labels, index=labels.index(default_label))
+        chat_partner = partner_lookup[selected_label]
+
+        st.markdown(f"Chat between **{current_user.name}** and **{chat_partner.name}**")
+
+        conv = get_conversation(current_user.id, chat_partner.id)
+        chat_area = st.container()
+        with chat_area:
+            if conv is None or conv.empty:
+                st.info("No messages yet. Start the conversation below.")
+            else:
+                for _, row in conv.iterrows():
+                    is_me = row["sender_id"] == current_user.id
+                    align = "right" if is_me else "left"
+                    bubble_color = "#0d6efd" if is_me else "#f1f3f5"
+                    text_color = "#ffffff" if is_me else "#212529"
+                    border_color = "#084298" if is_me else "#ced4da"
+                    label = "You" if is_me else chat_partner.name
+                    timestamp = row["timestamp"]
+                    ts_str = timestamp.strftime("%Y-%m-%d %H:%M") if hasattr(timestamp, "strftime") else str(timestamp)
+                    st.markdown(
+                        f"""
+                        <div style="
+                            max-width:70%;
+                            margin:8px 0;
+                            padding:10px 14px;
+                            border-radius:16px;
+                            background-color:{bubble_color};
+                            color:{text_color};
+                            text-align:left;
+                            margin-{ 'left' if is_me else 'right' }:auto;
+                            font-size:1rem;
+                            border:1px solid {border_color};
+                            box-shadow:0 1px 3px rgba(0,0,0,0.12);
+                        ">
+                            <div style="font-weight:600; margin-bottom:4px;">{label}</div>
+                            <div style="white-space:pre-wrap; line-height:1.4;">{row["content"]}</div>
+                            <div style="font-size:0.75rem; opacity:0.8; margin-top:6px; text-align:right;">{ts_str}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+        st.divider()
+        new_message = st.chat_input("Type a message")
+        refresh_clicked = st.button("Refresh")
+
+        if new_message and new_message.strip():
+            send_message(current_user.id, chat_partner.id, new_message.strip())
+            st.rerun()
+        elif refresh_clicked:
+            st.rerun()
 
 # ------------------- AI CHATBOT -------------------
 elif menu == "💬 AI Chatbot":

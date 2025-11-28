@@ -1,5 +1,3 @@
-# src/recommendations.py
-
 def generate_recommendations(input_data: dict, prediction: dict) -> list[str]:
     """
     Produce simple, rule-based health recommendations based on inputs and predicted risk.
@@ -63,3 +61,61 @@ def generate_recommendations(input_data: dict, prediction: dict) -> list[str]:
             uniq.append(r)
             seen.add(r)
     return uniq
+
+
+def generate_vitals_recommendations(vitals: dict) -> list[str]:
+    """
+    Provide simple recommendations based on raw daily vital signs
+    such as blood pressure and heart rate.
+    """
+    recs: list[str] = []
+
+    try:
+        sys_bp = float(vitals.get("SystolicBP", 0) or 0)
+    except (TypeError, ValueError):
+        sys_bp = 0.0
+    try:
+        dia_bp = float(vitals.get("DiastolicBP", 0) or 0)
+    except (TypeError, ValueError):
+        dia_bp = 0.0
+    try:
+        hr = float(vitals.get("HeartRate", 0) or 0)
+    except (TypeError, ValueError):
+        hr = 0.0
+
+    if sys_bp and dia_bp:
+        if sys_bp >= 140 or dia_bp >= 90:
+            recs.append(
+                "Blood pressure is in a high range today — avoid excess salt, reduce stress, "
+                "and consider contacting your doctor if readings stay high."
+            )
+        elif sys_bp >= 130 or dia_bp >= 80:
+            recs.append(
+                "Blood pressure is slightly elevated — monitor closely this week and "
+                "review diet, exercise, and sleep habits."
+            )
+        elif sys_bp and dia_bp:
+            recs.append("Blood pressure is within the typical range — keep your current routine and continue monitoring regularly.")
+
+    if hr:
+        if hr > 100:
+            recs.append(
+                "Resting heart rate is high — ensure you are resting during measurement and "
+                "talk to a healthcare professional if this persists."
+            )
+        elif hr < 50:
+            recs.append(
+                "Resting heart rate is quite low — if you are not an endurance athlete, "
+                "consult your doctor about this reading."
+            )
+
+    if not recs:
+        recs.append("Vitals entered. Continue tracking daily to identify trends over time.")
+
+    seen: set[str] = set()
+    unique: list[str] = []
+    for r in recs:
+        if r not in seen:
+            unique.append(r)
+            seen.add(r)
+    return unique

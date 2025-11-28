@@ -5,13 +5,13 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Optional
+from typing import Optional, Iterable
 
 import pandas as pd
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from .database import Patient, PredictionLog, session_scope
+from .database import Patient, PredictionLog, DailyVital, session_scope
 
 
 def _patient_to_dict(patient: Patient) -> dict:
@@ -153,3 +153,63 @@ def seed_patients_from_csv(session: Session, csv_path: str) -> None:
             cholesterol=row.get("Cholesterol"),
         )
         session.add(patient)
+
+
+def add_daily_vital(
+    patient_id: str,
+    systolic_bp: float | None = None,
+    diastolic_bp: float | None = None,
+    heart_rate: float | None = None,
+    taken_at=None,
+    notes: str | None = None,
+    created_by: str | None = None,
+) -> None:
+    """Insert a daily vitals measurement for a patient."""
+    if not patient_id:
+        return
+
+    with session_scope() as session:
+        patient = _find_patient_by_public_id(session, patient_id)
+        if not patient:
+            return
+
+        entry = DailyVital(
+            patient=patient,
+            taken_at=pd.to_datetime(taken_at) if taken_at is not None else None,
+            systolic_bp=systolic_bp,
+            diastolic_bp=diastolic_bp,
+            heart_rate=heart_rate,
+            notes=notes,
+            created_by=created_by,
+        )
+        session.add(entry)
+
+
+def get_daily_vitals(patient_id: Optional[str] = None) -> pd.DataFrame:
+    """Return daily vitals history, optionally filtered by patient."""
+    with session_scope() as session:
+        stmt = select(DailyVital)
+        if patient_id:
+            patient = _find_patient_by_public_id(session, patient_id)
+            if not patient:
+                return pd.DataFrame()
+            stmt = stmt.where(DailyVital.patient_id == patient.id)
+
+        logs: Iterable[DailyVital] = session.execute(
+            stmt.order_by(DailyVital.taken_at.asc())
+        ).scalars().all()
+
+        data = []
+        for log in logs:
+            data.append(
+                {
+                    "PatientID": log.patient.patient_id if log.patient else None,
+                    "TakenAt": log.taken_at,
+                    "SystolicBP": log.systolic_bp,
+                    "DiastolicBP": log.diastolic_bp,
+                    "HeartRate": log.heart_rate,
+                    "Notes": log.notes,
+                    "CreatedBy": log.created_by,
+                }
+            )
+    return pd.DataFrame(data)

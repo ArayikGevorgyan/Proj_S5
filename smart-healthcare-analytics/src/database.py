@@ -46,6 +46,7 @@ class Patient(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     predictions = relationship("PredictionLog", back_populates="patient", cascade="all, delete-orphan")
+    daily_vitals = relationship("DailyVital", back_populates="patient", cascade="all, delete-orphan")
 
 
 class PredictionLog(Base):
@@ -61,6 +62,21 @@ class PredictionLog(Base):
     created_by = Column(String(64), nullable=True)
 
     patient = relationship("Patient", back_populates="predictions")
+
+
+class DailyVital(Base):
+    __tablename__ = "daily_vitals"
+
+    id = Column(Integer, primary_key=True)
+    patient_id = Column(Integer, ForeignKey("patients.id", ondelete="CASCADE"), nullable=False)
+    taken_at = Column(DateTime, default=datetime.utcnow, index=True)
+    systolic_bp = Column(Float, nullable=True)
+    diastolic_bp = Column(Float, nullable=True)
+    heart_rate = Column(Float, nullable=True)
+    notes = Column(Text, nullable=True)
+    created_by = Column(String(64), nullable=True)
+
+    patient = relationship("Patient", back_populates="daily_vitals")
 
 
 class User(Base):
@@ -88,6 +104,17 @@ class SessionToken(Base):
     expires_at = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="sessions")
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True)
+    sender_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    receiver_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    content = Column(Text, nullable=False)
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    read_at = Column(DateTime, nullable=True)
 
 
 # ---------------- SESSION UTILS ----------------

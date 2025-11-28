@@ -8,7 +8,7 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
-from .patient_database import get_prediction_history
+from .patient_database import get_prediction_history, get_daily_vitals
 
 
 PLOTS_DIR = "docs/plots"
@@ -23,6 +23,13 @@ def get_patient_history(patient_id: str) -> pd.DataFrame:
     if not patient_id:
         return pd.DataFrame()
     return get_prediction_history(patient_id)
+
+
+def get_patient_vitals_history(patient_id: str) -> pd.DataFrame:
+    """Fetch chronological daily vitals history for a patient."""
+    if not patient_id:
+        return pd.DataFrame()
+    return get_daily_vitals(patient_id)
 
 
 def plot_risk_trend(patient_logs: pd.DataFrame,
@@ -54,6 +61,63 @@ def plot_risk_trend(patient_logs: pd.DataFrame,
     plt.tight_layout()
 
     filename = f"risk_trend_{patient_id}.png"
+    path = os.path.join(PLOTS_DIR, filename)
+    plt.savefig(path)
+    plt.close()
+    return path
+
+
+def plot_vitals_trend(vitals: pd.DataFrame,
+                      patient_id: str,
+                      patient_name: Optional[str] = None) -> Optional[str]:
+    """Plot blood pressure and heart-rate trends and return image path."""
+    if vitals is None or vitals.empty:
+        return None
+
+    _ensure_plots_dir()
+    df = vitals.copy()
+    df["TakenAt"] = pd.to_datetime(df["TakenAt"])
+    df.sort_values("TakenAt", inplace=True)
+
+    has_bp = {"SystolicBP", "DiastolicBP"}.issubset(df.columns)
+    has_hr = "HeartRate" in df.columns
+
+    if not (has_bp or has_hr):
+        return None
+
+    plt.figure(figsize=(8, 5))
+    if has_bp:
+        sns.lineplot(
+            data=df,
+            x="TakenAt",
+            y="SystolicBP",
+            label="Systolic BP",
+            marker="o",
+        )
+        sns.lineplot(
+            data=df,
+            x="TakenAt",
+            y="DiastolicBP",
+            label="Diastolic BP",
+            marker="o",
+        )
+    if has_hr:
+        sns.lineplot(
+            data=df,
+            x="TakenAt",
+            y="HeartRate",
+            label="Heart Rate",
+            marker="o",
+        )
+
+    title = f"Daily Vitals — {patient_name or patient_id}"
+    plt.title(title)
+    plt.ylabel("Value")
+    plt.xlabel("Date / Time")
+    plt.xticks(rotation=30, ha="right")
+    plt.tight_layout()
+
+    filename = f"vitals_trend_{patient_id}.png"
     path = os.path.join(PLOTS_DIR, filename)
     plt.savefig(path)
     plt.close()

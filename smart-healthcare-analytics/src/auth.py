@@ -184,3 +184,10 @@ def invalidate_session_token(token: str) -> None:
         session_token = session.get(SessionToken, token)
         if session_token:
             session.delete(session_token)
+
+
+def list_users_by_role(role: str) -> list[AuthenticatedUser]:
+    """Return all users for a given role (doctor/patient)."""
+    with session_scope() as session:
+        users = session.execute(select(User).where(User.role == role)).scalars().all()
+        return [_user_to_dataclass(u) for u in users]
