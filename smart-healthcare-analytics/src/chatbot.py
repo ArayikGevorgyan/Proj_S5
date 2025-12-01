@@ -5,14 +5,36 @@ from typing import Any, Dict, Optional, List, Tuple
 from dotenv import load_dotenv
 import requests
 
+try:  # Streamlit is only available in the app runtime
+    import streamlit as st
+except Exception:  # pragma: no cover - non-Streamlit contexts
+    st = None
+
 # Ensure .env is loaded from the project root, regardless of current working directory.
-# override=True ensures the value in .env wins over any existing shell env vars.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(PROJECT_ROOT / ".env", override=True)
 
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-DEEPSEEK_ENDPOINT = os.getenv("DEEPSEEK_ENDPOINT", "https://api.deepseek.com/v1/chat/completions")
-DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+
+def _get_deepseek_config() -> tuple[Optional[str], str, str]:
+    """
+    Resolve API config from environment and, when available, Streamlit secrets.
+    Streamlit Cloud users should define these in the app's Secrets / Environment.
+    """
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    endpoint = os.getenv("DEEPSEEK_ENDPOINT", "https://api.deepseek.com/v1/chat/completions")
+    model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+
+    if st is not None:
+        try:
+            secrets = st.secrets  # type: ignore[attr-defined]
+        except Exception:
+            secrets = None
+        if secrets:
+            api_key = secrets.get("DEEPSEEK_API_KEY", api_key)
+            endpoint = secrets.get("DEEPSEEK_ENDPOINT", endpoint)
+            model = secrets.get("DEEPSEEK_MODEL", model)
+
+    return api_key, endpoint, model
 
 
 def _local_fallback_response(user_text: str) -> str:
@@ -41,21 +63,23 @@ def _local_fallback_response(user_text: str) -> str:
 def _call_deepseek(messages: List[Dict[str, str]]) -> str:
     user_text = next((msg.get("content", "") for msg in reversed(messages) if msg.get("role") == "user"), "")
 
-    if not DEEPSEEK_API_KEY:
+    api_key, endpoint, model = _get_deepseek_config()
+
+    if not api_key:
         return _local_fallback_response(user_text)
 
     headers = {
-        "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "http://localhost:8501",
         "X-Title": "Smart Healthcare Analytics",
     }
     payload = {
-        "model": DEEPSEEK_MODEL,
+        "model": model,
         "messages": messages,
     }
     try:
-        response = requests.post(DEEPSEEK_ENDPOINT, json=payload, headers=headers, timeout=30)
+        response = requests.post(endpoint, json=payload, headers=headers, timeout=30)
         response.raise_for_status()
         data = response.json()
         return data["choices"][0]["message"]["content"]
