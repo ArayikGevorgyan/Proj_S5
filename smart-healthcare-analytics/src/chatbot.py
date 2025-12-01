@@ -5,9 +5,10 @@ from typing import Any, Dict, Optional, List, Tuple
 from dotenv import load_dotenv
 import requests
 
-# Ensure .env is loaded from the project root, regardless of current working directory
+# Ensure .env is loaded from the project root, regardless of current working directory.
+# override=True ensures the value in .env wins over any existing shell env vars.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-load_dotenv(PROJECT_ROOT / ".env")
+load_dotenv(PROJECT_ROOT / ".env", override=True)
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_ENDPOINT = os.getenv("DEEPSEEK_ENDPOINT", "https://api.deepseek.com/v1/chat/completions")
