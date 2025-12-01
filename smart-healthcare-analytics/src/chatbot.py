@@ -1,10 +1,13 @@
 import os
+from pathlib import Path
 from typing import Any, Dict, Optional, List, Tuple
 
 from dotenv import load_dotenv
 import requests
 
-load_dotenv()
+# Ensure .env is loaded from the project root, regardless of current working directory
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_ENDPOINT = os.getenv("DEEPSEEK_ENDPOINT", "https://api.deepseek.com/v1/chat/completions")

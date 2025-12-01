@@ -520,7 +520,8 @@ elif menu == "🧠 AI Prediction":
                         border-radius: 15px;
                         border-left: 6px solid #4a8cf7;
                         font-size: 16px;
-                        line-height: 1.6;">
+                        line-height: 1.6;
+                        color: #0b2538;">
                         <b>🤖 Medical AI Assistant says:</b><br><br>
                         {explanation}
                         </div>
@@ -823,6 +824,7 @@ elif menu == "💬 AI Chatbot":
 
     for role, msg in st.session_state["chat_history"]:
         bubble_color = "#eef6ff" if role == "assistant" else "#f8f9fb"
+        text_color = "#0b2538"
         align = "left" if role == "assistant" else "right"
         st.markdown(
             f"""
@@ -833,6 +835,7 @@ elif menu == "💬 AI Chatbot":
             margin:10px 0;
             text-align:{align};
             border-left: 5px solid {'#4a8cf7' if role == 'assistant' else '#ccc'};
+            color:{text_color};
             ">
             <b>{'🤖 Assistant' if role == 'assistant' else '🧑 You'}:</b><br>{msg}
             </div>
