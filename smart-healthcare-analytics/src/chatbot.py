@@ -46,6 +46,8 @@ def _call_deepseek(messages: List[Dict[str, str]]) -> str:
     headers = {
         "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
         "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:8501",
+        "X-Title": "Smart Healthcare Analytics",
     }
     payload = {
         "model": DEEPSEEK_MODEL,
@@ -56,8 +58,18 @@ def _call_deepseek(messages: List[Dict[str, str]]) -> str:
         response.raise_for_status()
         data = response.json()
         return data["choices"][0]["message"]["content"]
-    except Exception:
-        return _local_fallback_response(user_text)
+    except requests.exceptions.HTTPError as http_err:
+        status = getattr(http_err.response, "status_code", "unknown")
+        body = ""
+        try:
+            body = http_err.response.text
+        except Exception:
+            body = ""
+        debug_msg = f" [API error {status}: {body}]"
+        return _local_fallback_response(user_text) + debug_msg
+    except Exception as exc:
+        debug_msg = f" [Network or other error: {exc}]"
+        return _local_fallback_response(user_text) + debug_msg
 
 
 def explain_patient_results(input_data: Dict[str, Any], prediction: str, risk_score: Optional[float] = None) -> str:
