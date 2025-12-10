@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
 import os
 
-# ---- Import project modules ----
 from src.data_preparation import load_data, clean_data, transform_data, summarize_data
 from src.stats_analysis import descriptive_statistics, correlation_matrix, hypothesis_tests
 from src.graph_model import create_feature_graph, analyze_graph, visualize_graph

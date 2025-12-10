@@ -6,7 +6,6 @@ from pathlib import Path
 import pandas as pd
 import re
 
-# ---- Pure functional helpers ----
 def to_float(value):
     """Convert string to float safely."""
     try:
@@ -18,7 +17,6 @@ def validate_field(value, pattern):
     """Validate a single value using regex."""
     return bool(re.match(pattern, str(value)))
 
-# ---- Main pipeline functions ----
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -36,16 +34,14 @@ def load_data(filepath: str) -> pd.DataFrame:
     if not file_path.exists():
         raise FileNotFoundError(f"Dataset not found: {file_path}")
     df = pd.read_csv(file_path)
-    return df.copy()  # immutability: never mutate the original
+    return df.copy()
 
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """Clean and standardize patient data."""
     numeric_cols = ["Age", "BMI", "Glucose", "BloodPressure", "Cholesterol"]
 
-    # Functional: apply to_float to numeric columns
     df[numeric_cols] = df[numeric_cols].apply(lambda col: col.map(to_float))
 
-    # Fill missing categorical values with mode
     for col in ["Gender", "Smoking", "PhysicalActivity"]:
         if col in df.columns:
             mode_value = df[col].mode()[0] if not df[col].mode().empty else "Unknown"
@@ -66,7 +62,6 @@ def validate_patient_record(record: dict) -> bool:
 
 def transform_data(df: pd.DataFrame) -> pd.DataFrame:
     """Functional transformations (e.g., feature engineering)."""
-    # Example: Compute risk_index = weighted combination
     df["RiskIndex"] = list(
         map(lambda x: (0.3 * x["BMI"]) + (0.4 * x["Glucose"]/100) + (0.3 * x["Cholesterol"]/200),
             df.to_dict(orient="records"))
@@ -85,7 +80,6 @@ def summarize_data(df: pd.DataFrame) -> dict:
             "max": df[col].max(),
         }
 
-    # Use reduce to compute overall average
     overall_avg = reduce(lambda a, b: a + b, [stats[c]["mean"] for c in numeric_cols]) / len(numeric_cols)
     stats["overall_avg"] = round(overall_avg, 2)
     return stats

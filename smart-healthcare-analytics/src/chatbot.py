@@ -5,12 +5,11 @@ from typing import Any, Dict, Optional, List, Tuple
 from dotenv import load_dotenv
 import requests
 
-try:  # Streamlit is only available in the app runtime
+try:
     import streamlit as st
-except Exception:  # pragma: no cover - non-Streamlit contexts
+except Exception:
     st = None
 
-# Ensure .env is loaded from the project root, regardless of current working directory.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 load_dotenv(PROJECT_ROOT / ".env", override=True)
 
