@@ -37,8 +37,7 @@ def get_conversation(user_a_id: int, user_b_id: int, limit: int = 200) -> pd.Dat
 
     with session_scope() as session:
         stmt = (
-            select(Message)
-            .where(
+            select(Message).where(
                 or_(
                     and_(Message.sender_id == user_a_id, Message.receiver_id == user_b_id),
                     and_(Message.sender_id == user_b_id, Message.receiver_id == user_a_id),

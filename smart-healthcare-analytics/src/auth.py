@@ -32,7 +32,7 @@ class AuthenticatedUser:
 def hash_password(password: str) -> str:
     if bcrypt:
         return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-    # Fallback (not recommended) – store plain text
+
     return password
 
 

@@ -1,12 +1,39 @@
+# __pycache__/
+# *.pkl
+# # Allow tracked data files
+# #!data/*.csv
+# # Ignore CSV globally except the data directory
+# *.csv
+
+# # Track CSVs in data directory
+# !data/
+# !data/*.csv
+# *.ipynb_checkpoints/
+# .env
+
+
+
+
+# Python cache
 __pycache__/
+
+# Ignore all pickle and joblib files globally
 *.pkl
-# Allow tracked data files
-#!data/*.csv
+*.joblib
+
+# But allow the trained ML model(s)
+!models/default_model.pkl
+!models/default_model.joblib
+
+# Ignore notebook checkpoints
+*.ipynb_checkpoints/
+
+# Environment variables
+.env
+
 # Ignore CSV globally except the data directory
 *.csv
 
 # Track CSVs in data directory
 !data/
 !data/*.csv
-*.ipynb_checkpoints/
-.env
